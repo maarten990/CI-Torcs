@@ -14,8 +14,13 @@ public class DefaultDriver extends AbstractDriver {
 
     public DefaultDriver() {
         initialize();
-        neuralNetwork = new NeuralNetwork(12, 8, 2);
-//        neuralNetwork = neuralNetwork.loadGenome();
+
+        // uncomment to train a new network
+        //neuralNetwork = new NeuralNetwork(12, 1000);
+        //neuralNetwork.storeGenome();
+
+        // uncomment to load a previously saved network
+        neuralNetwork = NeuralNetwork.loadGenome();
     }
 
     private void initialize() {
@@ -36,38 +41,52 @@ public class DefaultDriver extends AbstractDriver {
 
     @Override
     public double getAcceleration(SensorModel sensors) {
-        double[] sensorArray = new double[4];
-        double output = neuralNetwork.getOutput(sensors);
-        return 1;
+        double[] output = neuralNetwork.getOutput(sensors);
+        return output[0];
     }
 
     @Override
     public double getSteering(SensorModel sensors) {
-        Double output = neuralNetwork.getOutput(sensors);
-        return 0.5;
+        double[] output = neuralNetwork.getOutput(sensors);
+        return output[2];
     }
 
     @Override
     public String getDriverName() {
-        return "Example Controller";
+        return "The Venga Bus";
+    }
+
+    @Override
+    public Action control(SensorModel sensors) {
+        Action action = new Action();
+
+        action.accelerate = getAcceleration(sensors);
+        action.steering = getSteering(sensors);
+
+        // stop accelerating if we're in a decent turn
+        if (sensors.getSpeed() > 30 && Math.abs(action.steering) > 0.4)
+            action.accelerate = 0;
+
+        // what kind of madman would drive more than 100 km/h
+        if (sensors.getSpeed() > 100)
+            action.accelerate = 0;
+
+        return action;
     }
 
     @Override
     public Action controlWarmUp(SensorModel sensors) {
-        Action action = new Action();
-        return defaultControl(action, sensors);
+        return control(sensors);
     }
 
     @Override
     public Action controlQualification(SensorModel sensors) {
-        Action action = new Action();
-        return defaultControl(action, sensors);
+        return control(sensors);
     }
 
     @Override
     public Action controlRace(SensorModel sensors) {
-        Action action = new Action();
-        return defaultControl(action, sensors);
+        return control(sensors);
     }
 
     @Override

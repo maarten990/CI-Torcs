@@ -14,7 +14,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 
 public class NeuralNetwork implements Serializable {
@@ -53,6 +52,10 @@ public class NeuralNetwork implements Serializable {
             try {
                 Data data = DataModel.load_data(filename);
                 for (int i = 0; i < data.X.length; ++i) {
+                    data.Y[i][0] = clamp(data.Y[i][0], 0, 1);
+                    data.Y[i][1] = clamp(data.Y[i][1], 0, 1);
+                    data.Y[i][2] = clamp(data.Y[i][2], -1, 1);
+
                     dataset.add(new BasicMLDataPair(new BasicMLData(data.X[i]),
                                 new BasicMLData(data.Y[i])));
                 }
@@ -69,6 +72,15 @@ public class NeuralNetwork implements Serializable {
         }
 
         train.finishTraining();
+    }
+
+    public double clamp(double value, double min, double max) {
+        if (value < min)
+            return min;
+        else if (value > max)
+            return max;
+        else
+            return value;
     }
 
     /**

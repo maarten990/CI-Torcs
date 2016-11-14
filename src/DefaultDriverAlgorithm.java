@@ -1,4 +1,5 @@
 import java.io.File;
+import java.util.function.Supplier;
 
 import cicontest.algorithm.abstracts.AbstractAlgorithm;
 import cicontest.algorithm.abstracts.AbstractRace;
@@ -13,6 +14,8 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
 
     DefaultDriverGenome[] drivers = new DefaultDriverGenome[1];
     int[] results = new int[1];
+    boolean use_logging = false;
+    String track = "aalborg";
 
     public Class<? extends Driver> getDriverClass() {
         return DefaultDriver.class;
@@ -26,11 +29,19 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
 
             //Start a race
             DefaultRace race = new DefaultRace();
-            race.setTrack("aalborg", "road");
+            race.setTrack(track, "road");
             race.laps = 1;
 
-            //for speedup set withGUI to false
-            results = race.runRace(drivers, true);
+            // create the appropriate driver factory so we can feed it into the racing function
+            Supplier<DefaultDriver> driver_factory;
+            if (use_logging)
+                driver_factory = () -> new LoggingDriver();
+            else
+                driver_factory = () -> new DefaultDriver();
+
+
+            boolean with_gui = use_logging ? false : true;
+            results = race.runRace(drivers, with_gui, driver_factory);
 
             // Save genome/nn
             DriversUtils.storeGenome(drivers[0]);
@@ -61,6 +72,18 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
             new DefaultRace().showBestRace();
         } else if (args.length > 0 && args[0].equals("-human")) {
             new DefaultRace().raceBest();
+        } else if (args.length > 0 && args[0].equals("-log")) {
+            // TODO: also train on dirt roads and stuff
+            String[] tracks = {"aalborg", "alpine-1", "alpine-2",
+                               "forza", "spring", "ruudskogen", "street-1"};
+
+            for (String track : tracks) {
+                System.out.println(track);
+                algorithm = new DefaultDriverAlgorithm();
+                algorithm.use_logging = true;
+                algorithm.track = track;
+                algorithm.run();
+            }
         } else if (args.length > 0 && args[0].equals("-continue")) {
             if (DriversUtils.hasCheckpoint()) {
                 DriversUtils.loadCheckpoint().run(true);

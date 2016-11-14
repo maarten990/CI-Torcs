@@ -10,6 +10,11 @@ import org.encog.neural.networks.training.propagation.resilient.ResilientPropaga
 import scr.SensorModel;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 
 public class NeuralNetwork implements Serializable {
@@ -29,16 +34,22 @@ public class NeuralNetwork implements Serializable {
         network.getStructure().finalizeStructure();
         network.reset(); // initializes the weights randomly
 
-        String[] filenames = {
-                "./train_data/aalborg.csv",
-                "./train_data/alpine-1.csv",
-                "./train_data/f-speedway.csv"
-        };
+        // get all the csv files in the training directory
+        List<String> filenames = new ArrayList<>();
+        try {
+            Files.list(Paths.get("train_data"))
+                    .map(String::valueOf)
+                    .filter(path -> path.endsWith(".csv"))
+                    .forEach(path -> filenames.add(path));
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
 
         MLDataSet dataset = new BasicMLDataSet();
 
         // load all the training files into the dataset
         for (String filename : filenames) {
+            System.out.printf("Adding %s to training data\n", filename);
             try {
                 Data data = DataModel.load_data(filename);
                 for (int i = 0; i < data.X.length; ++i) {

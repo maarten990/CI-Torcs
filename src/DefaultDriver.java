@@ -114,11 +114,7 @@ public class DefaultDriver extends AbstractDriver {
             action.accelerate = 1.0D;
             action.brake = 0.0D;
         }
-        System.out.println("--------------" + getDriverName() + "--------------");
-        System.out.println("Steering: " + action.steering);
-        System.out.println("Acceleration: " + action.accelerate);
-        System.out.println("Brake: " + action.brake);
-        System.out.println("-----------------------------------------------");
+
         return action;
     }
 }

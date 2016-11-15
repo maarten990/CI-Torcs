@@ -25,14 +25,16 @@ public class NeuralNetwork implements Serializable {
      * hidden: the number of nodes to use in the hidden layer
      * epochs: the number of epochs to train for
      */
-    NeuralNetwork(int hidden, int epochs) {
+    NeuralNetwork(int hidden) {
         network = new BasicNetwork();
         network.addLayer(new BasicLayer(null, false, 22));
         network.addLayer(new BasicLayer(new ActivationTANH(), true, hidden));
         network.addLayer(new BasicLayer(new ActivationTANH(), true, 3));
         network.getStructure().finalizeStructure();
         network.reset(); // initializes the weights randomly
+    }
 
+    public void train(int epochs) {
         // get all the csv files in the training directory
         List<String> filenames = new ArrayList<>();
         try {

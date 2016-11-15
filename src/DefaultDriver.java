@@ -19,7 +19,8 @@ public class DefaultDriver extends AbstractDriver {
         initialize();
 
         // uncomment to train a new network
-        //neuralNetwork = new NeuralNetwork(12, 1000);
+        //neuralNetwork = new NeuralNetwork(12);
+        //neuralNetwork.train(1000);
         //neuralNetwork.storeGenome();
 
         // uncomment to load a previously saved network

@@ -29,7 +29,7 @@ public class DefaultDriver extends AbstractDriver {
     private void initialize() {
         this.enableExtras(new AutomatedClutch());
         this.enableExtras(new AutomatedGearbox());
-        this.enableExtras(new AutomatedRecovering());
+        //this.enableExtras(new AutomatedRecovering());
         this.enableExtras(new ABS());
     }
 
@@ -73,6 +73,12 @@ public class DefaultDriver extends AbstractDriver {
     @Override
     public Action control(SensorModel sensors) {
         Action action = getActionFromNetwork(sensors);
+
+        // recovery if the car stalls
+        if (sensors.getSpeed() < 5 && action.accelerate < 0.1){
+            action.accelerate = 1;
+            action.brake = 0;
+        }
 
         return action;
     }

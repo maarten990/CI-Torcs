@@ -11,6 +11,9 @@ import scr.SensorModel;
 public class DefaultDriver extends AbstractDriver {
 
     private NeuralNetwork neuralNetwork;
+    private double lastRightTrackEdge;
+    private double lastLeftTrackEdge;
+
 
     public DefaultDriver() {
         initialize();
@@ -51,6 +54,17 @@ public class DefaultDriver extends AbstractDriver {
         return output[2];
     }
 
+    public Action getActionFromNetwork(SensorModel sensors) {
+        double[] output = neuralNetwork.getOutput(sensors);
+        Action action = new Action();
+
+        action.accelerate = output[0];
+        action.brake = output[1];
+        action.steering = output[2];
+
+        return action;
+    }
+
     @Override
     public String getDriverName() {
         return "The Venga Bus";
@@ -58,18 +72,7 @@ public class DefaultDriver extends AbstractDriver {
 
     @Override
     public Action control(SensorModel sensors) {
-        Action action = new Action();
-
-        action.accelerate = getAcceleration(sensors);
-        action.steering = getSteering(sensors);
-
-        // stop accelerating if we're in a decent turn
-        if (sensors.getSpeed() > 30 && Math.abs(action.steering) > 0.4)
-            action.accelerate = 0;
-
-        // what kind of madman would drive more than 100 km/h
-        if (sensors.getSpeed() > 100)
-            action.accelerate = 0;
+        Action action = getActionFromNetwork(sensors);
 
         return action;
     }
@@ -94,26 +97,35 @@ public class DefaultDriver extends AbstractDriver {
         if (action == null) {
             action = new Action();
         }
-        action.steering = DriversUtils.alignToTrackAxis(sensors, 0.5);
-        if (sensors.getSpeed() > 60.0D) {
-            action.accelerate = 0.0D;
+
+        double currentLeftTrackEdge;
+        double currentRightTrackEdge;
+
+        if (sensors.getTrackEdgeSensors()[6] != -1.0) {
+            lastLeftTrackEdge = sensors.getTrackEdgeSensors()[6];
+        }
+        currentLeftTrackEdge = lastLeftTrackEdge;
+
+        if (sensors.getTrackEdgeSensors()[12] != -1.0) {
+            lastRightTrackEdge = sensors.getTrackEdgeSensors()[12];
+        }
+        currentRightTrackEdge = lastRightTrackEdge;
+
+        double limit = Math.max(70, -65 + Math.sqrt(Math.max(0.0, sensors.getTrackEdgeSensors()[9])) * 30);
+        double delta = sensors.getSpeed() - limit;
+
+        if (delta > 0) {
+            action.accelerate = 0.0;
+            action.brake = 5 * delta / (limit + 2);
+        }
+        else if (delta < 0) {
+            action.accelerate = -5 * delta / (limit + 2);
             action.brake = 0.0D;
         }
 
-        if (sensors.getSpeed() > 70.0D) {
-            action.accelerate = 0.0D;
-            action.brake = -1.0D;
-        }
+        //action.steering = DriversUtils.alignToTrackAxis(sensors, 0.1);
 
-        if (sensors.getSpeed() <= 60.0D) {
-            action.accelerate = (80.0D - sensors.getSpeed()) / 80.0D;
-            action.brake = 0.0D;
-        }
-
-        if (sensors.getSpeed() < 30.0D) {
-            action.accelerate = 1.0D;
-            action.brake = 0.0D;
-        }
+        action.steering = ((currentLeftTrackEdge * currentLeftTrackEdge - currentRightTrackEdge * currentRightTrackEdge) / 100);
 
         return action;
     }

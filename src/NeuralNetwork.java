@@ -119,11 +119,12 @@ public class NeuralNetwork implements Serializable {
     public static NeuralNetwork loadGenome() {
 
         // Read from disk using FileInputStream
-        FileInputStream f_in = null;
+        InputStream f_in = null;
         try {
             f_in = new FileInputStream("memory/mydriver.mem");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
+        } catch (IOException e) {
+            // load from inside a jar
+            f_in = NeuralNetwork.class.getResourceAsStream("/memory/mydriver.mem");
         }
 
         // Read object using ObjectInputStream

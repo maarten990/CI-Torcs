@@ -13,12 +13,33 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
     private static final long serialVersionUID = 654963126362653L;
 
     DefaultDriverGenome[] drivers = new DefaultDriverGenome[1];
-    int[] results = new int[1];
+    double[] results = new double[1];
     boolean use_logging = false;
     String track = "aalborg";
 
     public Class<? extends Driver> getDriverClass() {
         return DefaultDriver.class;
+    }
+
+    public double run_with_results(BasicNetwork network) {
+        DefaultDriverGenome genome = new DefaultDriverGenome();
+        drivers[0] = genome;
+
+        //Start a race
+        DefaultRace race = new DefaultRace();
+        race.setTrack(track, "road");
+        race.laps = 1;
+
+        Supplier<DefaultDriver> supplier = () -> {
+            DefaultDriver d = new DefaultDriver();
+            d.neuralNetwork.network = network;
+
+            return d;
+        };
+
+        results = race.runRace(drivers, false, supplier);
+
+        return results[0];
     }
 
     public void run(boolean continue_from_checkpoint) {
@@ -84,6 +105,8 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
                 algorithm.track = track;
                 algorithm.run();
             }
+        } else if (args.length > 0 && args[0].equals("-evolve")) {
+            evolve();
         } else if (args.length > 0 && args[0].equals("-continue")) {
             if (DriversUtils.hasCheckpoint()) {
                 DriversUtils.loadCheckpoint().run(true);
@@ -95,4 +118,8 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
         }
     }
 
+    public static void evolve() {
+        EvolutionaryStuff e = new EvolutionaryStuff();
+        e.evolve("aalborg");
+    }
 }

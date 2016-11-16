@@ -2,10 +2,9 @@ import java.io.File;
 import java.util.function.Supplier;
 
 import cicontest.algorithm.abstracts.AbstractAlgorithm;
-import cicontest.algorithm.abstracts.AbstractRace;
 import cicontest.algorithm.abstracts.DriversUtils;
 import cicontest.torcs.controller.Driver;
-import cicontest.torcs.controller.Human;
+import org.encog.neural.networks.BasicNetwork;
 import race.TorcsConfiguration;
 
 public class DefaultDriverAlgorithm extends AbstractAlgorithm {

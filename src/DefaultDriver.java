@@ -10,7 +10,7 @@ import scr.SensorModel;
 
 public class DefaultDriver extends AbstractDriver {
 
-    private NeuralNetwork neuralNetwork;
+    public NeuralNetwork neuralNetwork;
     private double lastRightTrackEdge;
     private double lastLeftTrackEdge;
 

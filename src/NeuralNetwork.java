@@ -19,7 +19,7 @@ import java.util.List;
 public class NeuralNetwork implements Serializable {
 
     private static final long serialVersionUID = -88L;
-    private BasicNetwork network;
+    public BasicNetwork network;
 
     /**
      * hidden: the number of nodes to use in the hidden layer

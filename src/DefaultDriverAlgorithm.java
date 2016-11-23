@@ -60,7 +60,7 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
                 driver_factory = () -> new DefaultDriver();
 
 
-            boolean with_gui = use_logging ? false : true;
+            boolean with_gui = use_logging ? true : true;
             results = race.runRace(drivers, with_gui, driver_factory);
 
             // Save genome/nn

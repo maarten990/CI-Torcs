@@ -19,6 +19,7 @@ import java.util.List;
 public class NeuralNetwork implements Serializable {
 
     private static final long serialVersionUID = -88L;
+    public DataModel model;
     public BasicNetwork network;
 
     /**
@@ -32,6 +33,8 @@ public class NeuralNetwork implements Serializable {
         network.addLayer(new BasicLayer(new ActivationTANH(), true, 3));
         network.getStructure().finalizeStructure();
         network.reset(); // initializes the weights randomly
+
+        model = new DataModel();
     }
 
     public void train(int epochs) {
@@ -49,21 +52,18 @@ public class NeuralNetwork implements Serializable {
         MLDataSet dataset = new BasicMLDataSet();
 
         // load all the training files into the dataset
-        for (String filename : filenames) {
-            System.out.printf("Adding %s to training data\n", filename);
-            try {
-                Data data = DataModel.load_data(filename);
-                for (int i = 0; i < data.X.length; ++i) {
-                    data.Y[i][0] = clamp(data.Y[i][0], 0, 1);
-                    data.Y[i][1] = clamp(data.Y[i][1], 0, 1);
-                    data.Y[i][2] = clamp(data.Y[i][2], -1, 1);
+        try {
+            Data data = model.load_data(filenames);
+            for (int i = 0; i < data.X.length; ++i) {
+                data.Y[i][0] = clamp(data.Y[i][0], 0, 1);
+                data.Y[i][1] = clamp(data.Y[i][1], 0, 1);
+                data.Y[i][2] = clamp(data.Y[i][2], -1, 1);
 
-                    dataset.add(new BasicMLDataPair(new BasicMLData(data.X[i]),
-                                new BasicMLData(data.Y[i])));
-                }
-            } catch (IOException e) {
-                System.out.println(e.getMessage());
+                dataset.add(new BasicMLDataPair(new BasicMLData(data.X[i]),
+                        new BasicMLData(data.Y[i])));
             }
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
         }
 
         // training loop
@@ -89,7 +89,7 @@ public class NeuralNetwork implements Serializable {
      * Output is an array of the form [acceleration, brake, steering]
      */
     public double[] getOutput(SensorModel a) {
-        double[] input = DataModel.format_input(a);
+        double[] input = model.format_input(a, true);
         double[] output = new double[3];
         network.compute(input, output);
 

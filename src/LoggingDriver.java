@@ -75,9 +75,10 @@ public class LoggingDriver extends DefaultDriver {
 
     @Override
     public Action control(SensorModel sensors) {
-        Action action = manualControl(sensors);
+        Action action = defaultControl(null, sensors);
+        //Action action = manualControl(sensors);
 
-        double[] inputs = DataModel.format_input(sensors);
+        double[] inputs = neuralNetwork.model.format_input(sensors, false);
 
         Double[] data = new Double[inputs.length + 3];
         data[0] = action.accelerate;

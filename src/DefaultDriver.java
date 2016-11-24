@@ -30,7 +30,7 @@ public class DefaultDriver extends AbstractDriver {
     private void initialize() {
         this.enableExtras(new AutomatedClutch());
         this.enableExtras(new AutomatedGearbox());
-        //this.enableExtras(new AutomatedRecovering());
+        this.enableExtras(new AutomatedRecovering());
         this.enableExtras(new ABS());
     }
 

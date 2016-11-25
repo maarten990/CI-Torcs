@@ -32,7 +32,7 @@ public class DefaultDriver extends AbstractDriver {
         neuralNetwork = new NeuralNetwork(hidden_layer, n_history);
         System.out.printf("Input size: %d, hidden layer size: %d\n", neuralNetwork.network.getInputCount(),
                 neuralNetwork.network.getLayerNeuronCount(1));
-        neuralNetwork.train(1000);
+        neuralNetwork.train(5000, "human_data");
         neuralNetwork.storeGenome();
 
         // uncomment to load a previously saved network

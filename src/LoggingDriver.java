@@ -17,10 +17,12 @@ public class LoggingDriver extends DefaultDriver {
     public ArrayList<Double[]> sensor_log;
     private JFrame frame;
     private Action keylog_action;
+    private boolean human;
 
-    public LoggingDriver() {
+    public LoggingDriver(boolean human) {
         super();
 
+        this.human = human;
         keylog_action = new Action();
 
         frame = new JFrame("Keylogger");
@@ -33,7 +35,6 @@ public class LoggingDriver extends DefaultDriver {
 
             @Override
             public void keyPressed(KeyEvent keyEvent) {
-                //System.out.printf("Pressed %d\n", keyEvent.getKeyCode());
                 switch(keyEvent.getKeyCode()) {
                     case 37:
                         if (keylog_action.steering < 1)
@@ -60,8 +61,9 @@ public class LoggingDriver extends DefaultDriver {
                         keylog_action.steering = 0;
                         break;
                     case 38:
-                    case 40:
                         keylog_action.accelerate = 0;
+                        break;
+                    case 40:
                         keylog_action.brake = 0;
                         break;
                 }
@@ -75,8 +77,11 @@ public class LoggingDriver extends DefaultDriver {
 
     @Override
     public Action control(SensorModel sensors) {
-        Action action = defaultControl(null, sensors);
-        //Action action = manualControl(sensors);
+        Action action;
+        if (human)
+            action = manualControl(sensors);
+        else
+            action = defaultControl(null, sensors);
 
         double[] inputs = neuralNetwork.model.format_input(sensors, false);
 
@@ -110,7 +115,8 @@ public class LoggingDriver extends DefaultDriver {
             lines.add(line);
         }
 
-        String path = "train_data/" + getTrackName() + LocalDateTime.now().toString() + ".csv";
+        String folder = human ? "human_data/" : "train_data/";
+        String path = folder + getTrackName() + LocalDateTime.now().toString() + ".csv";
         try {
             Files.write(Paths.get(path), lines);
             System.out.printf("Wrote output to %s\n", path);

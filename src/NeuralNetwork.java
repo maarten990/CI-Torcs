@@ -42,17 +42,18 @@ public class NeuralNetwork implements Serializable {
         model = new DataModel();
     }
 
-    public void train(int epochs) {
+    public void train(int epochs, String training_folder) {
         // get all the csv files in the training directory
         List<String> filenames = new ArrayList<>();
         try {
-            Files.list(Paths.get("train_data"))
+            Files.list(Paths.get(training_folder))
                     .map(String::valueOf)
                     .filter(path -> path.endsWith(".csv"))
                     .forEach(path -> filenames.add(path));
         } catch (IOException e) {
             System.out.println(e.getMessage());
         }
+        System.out.printf("Training on %s\n", filenames);
 
         MLDataSet dataset = new BasicMLDataSet();
 

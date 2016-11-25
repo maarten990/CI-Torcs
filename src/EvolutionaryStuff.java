@@ -63,7 +63,7 @@ public class EvolutionaryStuff {
             System.out.printf("Merged time: %f\n\n", previous_best);
 
             if (i == 9) {
-                NeuralNetwork n = new NeuralNetwork(12);
+                NeuralNetwork n = new NeuralNetwork(34, 3);
                 n.network = network;
                 n.storeGenome();
             }

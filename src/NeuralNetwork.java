@@ -13,26 +13,31 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 
 public class NeuralNetwork implements Serializable {
 
     private static final long serialVersionUID = -88L;
+    private int history;
     public DataModel model;
     public BasicNetwork network;
 
     /**
      * hidden: the number of nodes to use in the hidden layer
      * epochs: the number of epochs to train for
+     * history: number of previous steps to take into account
      */
-    NeuralNetwork(int hidden) {
+    NeuralNetwork(int hidden, int history) {
         network = new BasicNetwork();
-        network.addLayer(new BasicLayer(null, false, 22));
+        network.addLayer(new BasicLayer(null, false, 22 + (history * 22)));
         network.addLayer(new BasicLayer(new ActivationTANH(), true, hidden));
         network.addLayer(new BasicLayer(new ActivationTANH(), true, 3));
         network.getStructure().finalizeStructure();
         network.reset(); // initializes the weights randomly
+
+        this.history = history;
 
         model = new DataModel();
     }
@@ -59,8 +64,25 @@ public class NeuralNetwork implements Serializable {
                 data.Y[i][1] = clamp(data.Y[i][1], 0, 1);
                 data.Y[i][2] = clamp(data.Y[i][2], -1, 1);
 
-                dataset.add(new BasicMLDataPair(new BasicMLData(data.X[i]),
-                        new BasicMLData(data.Y[i])));
+                if (i < history + 1)
+                    continue;
+
+                double[] new_x = new double[network.getInputCount()];
+                // fill the input array
+                ArrayList<Double> input_list = new ArrayList<>();
+                for (int h = history; h >= 0; --h) {
+                    double[] t_minus_h = data.X[i - h];
+                    for (double x : t_minus_h) {
+                        input_list.add(x);
+                    }
+                }
+
+                for (int j = 0; j < new_x.length; ++j) {
+                    new_x[j] = input_list.get(j);
+                }
+
+                dataset.add(new BasicMLDataPair(new BasicMLData(new_x),
+                            new BasicMLData(data.Y[i])));
             }
         } catch (IOException e) {
             System.out.println(e.getMessage());
@@ -88,8 +110,19 @@ public class NeuralNetwork implements Serializable {
     /**
      * Output is an array of the form [acceleration, brake, steering]
      */
-    public double[] getOutput(SensorModel a) {
-        double[] input = model.format_input(a, true);
+    public double[] getOutput(List<double[]> histories) {
+        ArrayList<Double> input_list = new ArrayList<>();
+
+        for (double[] h : histories) {
+            for (double element : h) {
+                input_list.add(element);
+            }
+        }
+
+        double[] input = new double[input_list.size()];
+        for (int i = 0; i < input.length; ++i)
+            input[i] = input_list.get(i);
+
         double[] output = new double[3];
         network.compute(input, output);
 

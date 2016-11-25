@@ -8,20 +8,32 @@ import cicontest.torcs.genome.IGenome;
 import scr.Action;
 import scr.SensorModel;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class DefaultDriver extends AbstractDriver {
 
     public NeuralNetwork neuralNetwork;
     private double lastRightTrackEdge;
     private double lastLeftTrackEdge;
+    private List history;
+    public int n_history = 2;
 
 
     public DefaultDriver() {
         initialize();
 
+        history = new ArrayList();
+
+        int input_size = 22 + (22*n_history);
+        int hidden_layer = (input_size + 3) / 2;
+
         // uncomment to train a new network
-        //neuralNetwork = new NeuralNetwork(12);
-        //neuralNetwork.train(1000);
-        //neuralNetwork.storeGenome();
+        neuralNetwork = new NeuralNetwork(hidden_layer, n_history);
+        System.out.printf("Input size: %d, hidden layer size: %d\n", neuralNetwork.network.getInputCount(),
+                neuralNetwork.network.getLayerNeuronCount(1));
+        neuralNetwork.train(1000);
+        neuralNetwork.storeGenome();
 
         // uncomment to load a previously saved network
         neuralNetwork = NeuralNetwork.loadGenome();
@@ -45,18 +57,26 @@ public class DefaultDriver extends AbstractDriver {
 
     @Override
     public double getAcceleration(SensorModel sensors) {
-        double[] output = neuralNetwork.getOutput(sensors);
-        return output[0];
+        return 0;
     }
 
     @Override
     public double getSteering(SensorModel sensors) {
-        double[] output = neuralNetwork.getOutput(sensors);
-        return output[2];
+        return 0;
     }
 
     public Action getActionFromNetwork(SensorModel sensors) {
-        double[] output = neuralNetwork.getOutput(sensors);
+        if (history.size() < n_history + 1) {
+            history.add(neuralNetwork.model.format_input(sensors, true));
+            return new Action();
+        }
+        double[] input = neuralNetwork.model.format_input(sensors, true);
+        double[] output = neuralNetwork.getOutput(history);
+
+        // update the history
+        history.add(input);
+        history.remove(0);
+
         Action action = new Action();
 
         action.accelerate = output[0];
@@ -76,7 +96,7 @@ public class DefaultDriver extends AbstractDriver {
         Action action = getActionFromNetwork(sensors);
 
         // recovery if the car stalls
-        if (sensors.getSpeed() < 5 && action.accelerate < 0.1){
+        if (sensors.getSpeed() < 20){
             action.accelerate = 1;
             action.brake = 0;
         }

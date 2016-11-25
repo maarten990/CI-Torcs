@@ -14,7 +14,9 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
     DefaultDriverGenome[] drivers = new DefaultDriverGenome[1];
     double[] results = new double[1];
     boolean use_logging = false;
+    boolean with_gui = true;
     String track = "aalborg";
+    String tracktype = "road";
 
     public Class<? extends Driver> getDriverClass() {
         return DefaultDriver.class;
@@ -26,7 +28,7 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
 
         //Start a race
         DefaultRace race = new DefaultRace();
-        race.setTrack(track, "road");
+        race.setTrack(track, tracktype);
         race.laps = 1;
 
         Supplier<DefaultDriver> supplier = () -> {
@@ -49,7 +51,7 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
 
             //Start a race
             DefaultRace race = new DefaultRace();
-            race.setTrack(track, "road");
+            race.setTrack(track, tracktype);
             race.laps = 1;
 
             // create the appropriate driver factory so we can feed it into the racing function
@@ -60,7 +62,6 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
                 driver_factory = () -> new DefaultDriver();
 
 
-            boolean with_gui = use_logging ? false : true;
             results = race.runRace(drivers, with_gui, driver_factory);
 
             // Save genome/nn
@@ -93,17 +94,9 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
         } else if (args.length > 0 && args[0].equals("-human")) {
             new DefaultRace().raceBest();
         } else if (args.length > 0 && args[0].equals("-log")) {
-            // TODO: also train on dirt roads and stuff
-            String[] tracks = {"aalborg", "alpine-1", "alpine-2",
-                               "forza", "spring", "ruudskogen", "street-1"};
-
-            for (String track : tracks) {
-                System.out.println(track);
-                algorithm = new DefaultDriverAlgorithm();
-                algorithm.use_logging = true;
-                algorithm.track = track;
-                algorithm.run();
-            }
+            run_all_tracks(true, false);
+        } else if (args.length > 0 && args[0].equals("-test")) {
+            run_all_tracks(false, false);
         } else if (args.length > 0 && args[0].equals("-evolve")) {
             evolve();
         } else if (args.length > 0 && args[0].equals("-continue")) {
@@ -113,6 +106,33 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
                 algorithm.run();
             }
         } else {
+            algorithm.run();
+        }
+    }
+
+    public static void run_all_tracks(boolean use_logging, boolean with_gui) {
+        DefaultDriverAlgorithm algorithm;
+
+        String[] road_tracks = {"aalborg", "alpine-1", "alpine-2",
+                "forza", "spring", "corkscrew", "brondehach", "ruudskogen", "street-1"};
+        String[] dirt_tracks = {"dirt-1", "dirt-3"};
+
+        for (String track : road_tracks) {
+            System.out.println(track);
+            algorithm = new DefaultDriverAlgorithm();
+            algorithm.use_logging = use_logging;
+            algorithm.with_gui = with_gui;
+            algorithm.track = track;
+            algorithm.run();
+        }
+
+        for (String track : dirt_tracks) {
+            System.out.println(track);
+            algorithm = new DefaultDriverAlgorithm();
+            algorithm.use_logging = use_logging;
+            algorithm.with_gui = with_gui;
+            algorithm.track = track;
+            algorithm.tracktype = "dirt";
             algorithm.run();
         }
     }

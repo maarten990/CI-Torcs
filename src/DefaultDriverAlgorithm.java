@@ -14,6 +14,7 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
     DefaultDriverGenome[] drivers = new DefaultDriverGenome[1];
     double[] results = new double[1];
     boolean use_logging = false;
+    boolean human = false;
     boolean with_gui = true;
     String track = "aalborg";
     String tracktype = "road";
@@ -57,7 +58,7 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
             // create the appropriate driver factory so we can feed it into the racing function
             Supplier<DefaultDriver> driver_factory;
             if (use_logging)
-                driver_factory = () -> new LoggingDriver();
+                driver_factory = () -> new LoggingDriver(human);
             else
                 driver_factory = () -> new DefaultDriver();
 
@@ -111,26 +112,22 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
     }
 
     public static void run_all_tracks(boolean use_logging, boolean with_gui) {
-        DefaultDriverAlgorithm algorithm;
+        DefaultDriverAlgorithm algorithm = new DefaultDriverAlgorithm();
+        algorithm.use_logging = use_logging;
+        algorithm.with_gui = with_gui;
+        algorithm.human = false;
 
-        String[] road_tracks = {"aalborg", "alpine-1", "alpine-2",
-                "forza", "spring", "corkscrew", "brondehach", "ruudskogen", "street-1"};
-        String[] dirt_tracks = {"dirt-1", "dirt-3"};
+        String[] road_tracks = {"aalborg", "corkscrew", "brondehach"};
+        String[] dirt_tracks = {"dirt-1", "dirt-2", "mixed-1", "mixed-2"};
 
         for (String track : road_tracks) {
             System.out.println(track);
-            algorithm = new DefaultDriverAlgorithm();
-            algorithm.use_logging = use_logging;
-            algorithm.with_gui = with_gui;
             algorithm.track = track;
             algorithm.run();
         }
 
         for (String track : dirt_tracks) {
             System.out.println(track);
-            algorithm = new DefaultDriverAlgorithm();
-            algorithm.use_logging = use_logging;
-            algorithm.with_gui = with_gui;
             algorithm.track = track;
             algorithm.tracktype = "dirt";
             algorithm.run();

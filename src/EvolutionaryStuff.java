@@ -17,7 +17,7 @@ public class EvolutionaryStuff {
 
     public void evolve(String track) {
         DefaultDriverAlgorithm algorithm;
-        BasicNetwork network = new DefaultDriver().neuralNetwork.network;
+        BasicNetwork network = new DefaultDriver().neuralNetwork.road_network;
 
         // get the base time
         previous_best = runRace(track, network);
@@ -64,7 +64,7 @@ public class EvolutionaryStuff {
 
             if (i == 9) {
                 NeuralNetwork n = new NeuralNetwork(34, 3);
-                n.network = network;
+                n.road_network = network;
                 n.storeGenome();
             }
         }
@@ -104,8 +104,8 @@ public class EvolutionaryStuff {
         for (int from = 0; from < 22; ++from) {
             for (int to = 0; to < 12; ++to) {
                 if (rng.nextDouble() < 0.10) {
-                    double old_value = network.getWeight(0, from, to);
-                    network.setWeight(1, from, to, old_value + (0.0001 * rng.nextGaussian()));
+                    double old_value = road_network.getWeight(0, from, to);
+                    road_network.setWeight(1, from, to, old_value + (0.0001 * rng.nextGaussian()));
                 }
             }
         }

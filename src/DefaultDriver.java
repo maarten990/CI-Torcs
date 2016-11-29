@@ -65,8 +65,14 @@ public class DefaultDriver extends AbstractDriver {
         return 0;
     }
 
+    public boolean trackIsDirty() {
+        return getTrackName().toLowerCase().contains("dirt") || getTrackName().toLowerCase().contains("mixed");
+    }
+
     public Action getActionFromNetwork(SensorModel sensors) {
-        history.add(neuralNetwork.model.format_input(sensors, true));
+        DataModel model = trackIsDirty() ? neuralNetwork.dirt_model : neuralNetwork.road_model;
+
+        history.add(model.format_input(sensors, true));
 
         if (history.size() < n_history + 1)
             return new Action();
@@ -74,7 +80,7 @@ public class DefaultDriver extends AbstractDriver {
             history.remove(0);
 
         double[] output;
-        if (getTrackName().toLowerCase().contains("dirt") || getTrackName().toLowerCase().contains("mixed"))
+        if (trackIsDirty())
             output = neuralNetwork.getDirtOutput(history);
         else
             output = neuralNetwork.getRoadOutput(history);

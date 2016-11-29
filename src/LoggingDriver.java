@@ -83,7 +83,8 @@ public class LoggingDriver extends DefaultDriver {
         else
             action = defaultControl(null, sensors);
 
-        double[] inputs = neuralNetwork.model.format_input(sensors, false);
+        DataModel model = trackIsDirty() ? neuralNetwork.dirt_model : neuralNetwork.road_model;
+        double[] inputs = model.format_input(sensors, false);
 
         Double[] data = new Double[inputs.length + 3];
         data[0] = action.accelerate;

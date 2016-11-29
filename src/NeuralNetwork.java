@@ -21,8 +21,11 @@ public class NeuralNetwork implements Serializable {
 
     private static final long serialVersionUID = -88L;
     private int history;
-    public DataModel model;
-    public BasicNetwork network;
+
+    public DataModel road_model;
+    public DataModel dirt_model;
+
+    public BasicNetwork road_network;
     public BasicNetwork dirt_network;
 
     /**
@@ -31,12 +34,12 @@ public class NeuralNetwork implements Serializable {
      * history: number of previous steps to take into account
      */
     NeuralNetwork(int hidden, int history) {
-        network = new BasicNetwork();
-        network.addLayer(new BasicLayer(null, false, 22 + (history * 22)));
-        network.addLayer(new BasicLayer(new ActivationTANH(), true, hidden));
-        network.addLayer(new BasicLayer(new ActivationTANH(), true, 3));
-        network.getStructure().finalizeStructure();
-        network.reset(); // initializes the weights randomly
+        road_network = new BasicNetwork();
+        road_network.addLayer(new BasicLayer(null, false, 22 + (history * 22)));
+        road_network.addLayer(new BasicLayer(new ActivationTANH(), true, hidden));
+        road_network.addLayer(new BasicLayer(new ActivationTANH(), true, 3));
+        road_network.getStructure().finalizeStructure();
+        road_network.reset(); // initializes the weights randomly
 
         dirt_network = new BasicNetwork();
         dirt_network.addLayer(new BasicLayer(null, false, 22 + (history * 22)));
@@ -47,17 +50,18 @@ public class NeuralNetwork implements Serializable {
 
         this.history = history;
 
-        model = new DataModel();
+        road_model = new DataModel();
+        dirt_model = new DataModel();
     }
 
     public void train(int epochs, String training_folder, String dirt_folder) {
         System.out.println("Training road");
-        train(epochs, training_folder, network);
+        train(epochs, training_folder, road_network, road_model);
         System.out.println("Training dirt");
-        train(epochs, dirt_folder, dirt_network);
+        train(epochs, dirt_folder, dirt_network, dirt_model);
     }
 
-    public void train(int epochs, String training_folder, BasicNetwork net) {
+    public void train(int epochs, String training_folder, BasicNetwork network, DataModel model) {
         // get all the csv files in the training directory
         List<String> filenames = new ArrayList<>();
         try {
@@ -83,7 +87,7 @@ public class NeuralNetwork implements Serializable {
                 if (i < history + 1)
                     continue;
 
-                double[] new_x = new double[net.getInputCount()];
+                double[] new_x = new double[network.getInputCount()];
                 // fill the input array
                 ArrayList<Double> input_list = new ArrayList<>();
                 for (int h = history; h >= 0; --h) {
@@ -105,7 +109,7 @@ public class NeuralNetwork implements Serializable {
         }
 
         // training loop
-        Propagation train = new ResilientPropagation(net, dataset);
+        Propagation train = new ResilientPropagation(network, dataset);
         for (int epoch = 1; epoch < epochs; ++epoch) {
             train.iteration();
             System.out.printf("Epoch #%d: Error %f\n", epoch, train.getError());
@@ -124,7 +128,7 @@ public class NeuralNetwork implements Serializable {
     }
 
     public double[] getRoadOutput(List<double[]> histories) {
-        return getOutput(histories, network);
+        return getOutput(histories, road_network);
     }
 
     public double[] getDirtOutput(List<double[]> histories) {
@@ -134,7 +138,7 @@ public class NeuralNetwork implements Serializable {
     /**
      * Output is an array of the form [acceleration, brake, steering]
      */
-    public double[] getOutput(List<double[]> histories, BasicNetwork net) {
+    public double[] getOutput(List<double[]> histories, BasicNetwork network) {
         ArrayList<Double> input_list = new ArrayList<>();
 
         for (double[] h : histories) {
@@ -148,7 +152,7 @@ public class NeuralNetwork implements Serializable {
             input[i] = input_list.get(i);
 
         double[] output = new double[3];
-        net.compute(input, output);
+        network.compute(input, output);
 
         return output;
     }

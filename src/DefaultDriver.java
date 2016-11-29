@@ -17,7 +17,7 @@ public class DefaultDriver extends AbstractDriver {
     private double lastRightTrackEdge;
     private double lastLeftTrackEdge;
     private List history;
-    public int n_history = 2;
+    public int n_history = 1;
 
 
     public DefaultDriver() {
@@ -29,11 +29,11 @@ public class DefaultDriver extends AbstractDriver {
         int hidden_layer = (input_size + 3) / 2;
 
         // uncomment to train a new network
-        neuralNetwork = new NeuralNetwork(hidden_layer, n_history);
-        System.out.printf("Input size: %d, hidden layer size: %d\n", neuralNetwork.network.getInputCount(),
-                neuralNetwork.network.getLayerNeuronCount(1));
-        neuralNetwork.train(5000, "human_data");
-        neuralNetwork.storeGenome();
+        //neuralNetwork = new NeuralNetwork(hidden_layer, n_history);
+        //System.out.printf("Input size: %d, hidden layer size: %d\n", neuralNetwork.network.getInputCount(),
+        //        neuralNetwork.network.getLayerNeuronCount(1));
+        //neuralNetwork.train(1000, "train_data", "dirt_data");
+        //neuralNetwork.storeGenome();
 
         // uncomment to load a previously saved network
         neuralNetwork = NeuralNetwork.loadGenome();
@@ -71,7 +71,12 @@ public class DefaultDriver extends AbstractDriver {
             return new Action();
         }
         double[] input = neuralNetwork.model.format_input(sensors, true);
-        double[] output = neuralNetwork.getOutput(history);
+
+        double[] output;
+        if (getTrackName().toLowerCase().contains("dirt") || getTrackName().toLowerCase().contains("mixed"))
+            output = neuralNetwork.getDirtOutput(history);
+        else
+            output = neuralNetwork.getRoadOutput(history);
 
         // update the history
         history.add(input);
@@ -153,6 +158,12 @@ public class DefaultDriver extends AbstractDriver {
         //action.steering = DriversUtils.alignToTrackAxis(sensors, 0.1);
 
         action.steering = ((currentLeftTrackEdge * currentLeftTrackEdge - currentRightTrackEdge * currentRightTrackEdge) / 100);
+
+        if (getTrackName().toLowerCase().contains("dirt") || getTrackName().toLowerCase().contains("mixed")) {
+            if (sensors.getSpeed() > 80) {
+                action.accelerate = 0;
+            }
+        }
 
         return action;
     }

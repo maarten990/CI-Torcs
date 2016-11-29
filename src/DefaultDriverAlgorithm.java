@@ -117,7 +117,7 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
         algorithm.with_gui = with_gui;
         algorithm.human = false;
 
-        String[] road_tracks = {"aalborg", "corkscrew", "brondehach"};
+        String[] road_tracks = {"aalborg", "corkscrew", "brondehach", "alpine-1", "alpine-2"};
         String[] dirt_tracks = {"dirt-1", "dirt-2", "mixed-1", "mixed-2"};
 
         for (String track : road_tracks) {

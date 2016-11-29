@@ -23,6 +23,7 @@ public class NeuralNetwork implements Serializable {
     private int history;
     public DataModel model;
     public BasicNetwork network;
+    public BasicNetwork dirt_network;
 
     /**
      * hidden: the number of nodes to use in the hidden layer
@@ -37,12 +38,26 @@ public class NeuralNetwork implements Serializable {
         network.getStructure().finalizeStructure();
         network.reset(); // initializes the weights randomly
 
+        dirt_network = new BasicNetwork();
+        dirt_network.addLayer(new BasicLayer(null, false, 22 + (history * 22)));
+        dirt_network.addLayer(new BasicLayer(new ActivationTANH(), true, hidden));
+        dirt_network.addLayer(new BasicLayer(new ActivationTANH(), true, 3));
+        dirt_network.getStructure().finalizeStructure();
+        dirt_network.reset(); // initializes the weights randomly
+
         this.history = history;
 
         model = new DataModel();
     }
 
-    public void train(int epochs, String training_folder) {
+    public void train(int epochs, String training_folder, String dirt_folder) {
+        System.out.println("Training road");
+        train(epochs, training_folder, network);
+        System.out.println("Training dirt");
+        train(epochs, dirt_folder, dirt_network);
+    }
+
+    public void train(int epochs, String training_folder, BasicNetwork net) {
         // get all the csv files in the training directory
         List<String> filenames = new ArrayList<>();
         try {
@@ -68,7 +83,7 @@ public class NeuralNetwork implements Serializable {
                 if (i < history + 1)
                     continue;
 
-                double[] new_x = new double[network.getInputCount()];
+                double[] new_x = new double[net.getInputCount()];
                 // fill the input array
                 ArrayList<Double> input_list = new ArrayList<>();
                 for (int h = history; h >= 0; --h) {
@@ -90,7 +105,7 @@ public class NeuralNetwork implements Serializable {
         }
 
         // training loop
-        Propagation train = new ResilientPropagation(network, dataset);
+        Propagation train = new ResilientPropagation(net, dataset);
         for (int epoch = 1; epoch < epochs; ++epoch) {
             train.iteration();
             System.out.printf("Epoch #%d: Error %f\n", epoch, train.getError());
@@ -108,10 +123,18 @@ public class NeuralNetwork implements Serializable {
             return value;
     }
 
+    public double[] getRoadOutput(List<double[]> histories) {
+        return getOutput(histories, network);
+    }
+
+    public double[] getDirtOutput(List<double[]> histories) {
+        return getOutput(histories, dirt_network);
+    }
+
     /**
      * Output is an array of the form [acceleration, brake, steering]
      */
-    public double[] getOutput(List<double[]> histories) {
+    public double[] getOutput(List<double[]> histories, BasicNetwork net) {
         ArrayList<Double> input_list = new ArrayList<>();
 
         for (double[] h : histories) {
@@ -125,7 +148,7 @@ public class NeuralNetwork implements Serializable {
             input[i] = input_list.get(i);
 
         double[] output = new double[3];
-        network.compute(input, output);
+        net.compute(input, output);
 
         return output;
     }

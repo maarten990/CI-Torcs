@@ -16,24 +16,24 @@ public class DefaultDriver extends AbstractDriver {
     public NeuralNetwork neuralNetwork;
     private double lastRightTrackEdge;
     private double lastLeftTrackEdge;
-    private List history;
+    private List<double[]> history;
     public int n_history = 1;
 
 
     public DefaultDriver() {
         initialize();
 
-        history = new ArrayList();
+        history = new ArrayList<>();
 
         int input_size = 22 + (22*n_history);
         int hidden_layer = (input_size + 3) / 2;
 
         // uncomment to train a new network
-        //neuralNetwork = new NeuralNetwork(hidden_layer, n_history);
-        //System.out.printf("Input size: %d, hidden layer size: %d\n", neuralNetwork.network.getInputCount(),
-        //        neuralNetwork.network.getLayerNeuronCount(1));
-        //neuralNetwork.train(1000, "train_data", "dirt_data");
-        //neuralNetwork.storeGenome();
+        neuralNetwork = new NeuralNetwork(hidden_layer, n_history);
+        System.out.printf("Input size: %d, hidden layer size: %d\n", neuralNetwork.network.getInputCount(),
+                neuralNetwork.network.getLayerNeuronCount(1));
+        neuralNetwork.train(1000, "train_data", "dirt_data");
+        neuralNetwork.storeGenome();
 
         // uncomment to load a previously saved network
         neuralNetwork = NeuralNetwork.loadGenome();
@@ -66,21 +66,18 @@ public class DefaultDriver extends AbstractDriver {
     }
 
     public Action getActionFromNetwork(SensorModel sensors) {
-        if (history.size() < n_history + 1) {
-            history.add(neuralNetwork.model.format_input(sensors, true));
+        history.add(neuralNetwork.model.format_input(sensors, true));
+
+        if (history.size() < n_history + 1)
             return new Action();
-        }
-        double[] input = neuralNetwork.model.format_input(sensors, true);
+        if (history.size() > n_history + 1)
+            history.remove(0);
 
         double[] output;
         if (getTrackName().toLowerCase().contains("dirt") || getTrackName().toLowerCase().contains("mixed"))
             output = neuralNetwork.getDirtOutput(history);
         else
             output = neuralNetwork.getRoadOutput(history);
-
-        // update the history
-        history.add(input);
-        history.remove(0);
 
         Action action = new Action();
 

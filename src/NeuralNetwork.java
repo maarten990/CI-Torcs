@@ -7,20 +7,18 @@ import org.encog.neural.networks.BasicNetwork;
 import org.encog.neural.networks.layers.BasicLayer;
 import org.encog.neural.networks.training.propagation.Propagation;
 import org.encog.neural.networks.training.propagation.resilient.ResilientPropagation;
-import scr.SensorModel;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 
 public class NeuralNetwork implements Serializable {
 
     private static final long serialVersionUID = -88L;
-    private int history;
+    public int history;
 
     public DataModel road_model;
     public DataModel dirt_model;
@@ -112,7 +110,9 @@ public class NeuralNetwork implements Serializable {
         Propagation train = new ResilientPropagation(network, dataset);
         for (int epoch = 1; epoch < epochs; ++epoch) {
             train.iteration();
-            System.out.printf("Epoch #%d: Error %f\n", epoch, train.getError());
+
+            if (epoch % 100 == 0)
+                System.out.printf("Epoch #%d: Error %f\n", epoch, train.getError());
         }
 
         train.finishTraining();

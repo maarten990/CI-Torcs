@@ -1,5 +1,4 @@
 import cicontest.algorithm.abstracts.AbstractDriver;
-import cicontest.algorithm.abstracts.DriversUtils;
 import cicontest.torcs.controller.extras.ABS;
 import cicontest.torcs.controller.extras.AutomatedClutch;
 import cicontest.torcs.controller.extras.AutomatedGearbox;
@@ -17,7 +16,7 @@ public class DefaultDriver extends AbstractDriver {
     private double lastRightTrackEdge;
     private double lastLeftTrackEdge;
     private List<double[]> history;
-    public int n_history = 1;
+    public int n_history;
 
 
     public DefaultDriver() {
@@ -25,18 +24,18 @@ public class DefaultDriver extends AbstractDriver {
 
         history = new ArrayList<>();
 
-        int input_size = 22 + (22*n_history);
-        int hidden_layer = (input_size + 3) / 2;
-
-        // uncomment to train a new network
-        neuralNetwork = new NeuralNetwork(hidden_layer, n_history);
-        System.out.printf("Input size: %d, hidden layer size: %d\n", neuralNetwork.network.getInputCount(),
-                neuralNetwork.network.getLayerNeuronCount(1));
-        neuralNetwork.train(1000, "train_data", "dirt_data");
-        neuralNetwork.storeGenome();
-
-        // uncomment to load a previously saved network
         neuralNetwork = NeuralNetwork.loadGenome();
+        n_history = neuralNetwork.history;
+    }
+
+    public void train(int n_history, int hidden, int epochs) {
+        int input_size = 22 + (22*n_history);
+
+        neuralNetwork = new NeuralNetwork(hidden, n_history);
+        System.out.printf("Input size: %d, hidden layer size: %d\n", neuralNetwork.road_network.getInputCount(),
+                neuralNetwork.road_network.getLayerNeuronCount(1));
+        neuralNetwork.train(epochs, "train_data", "dirt_data");
+        neuralNetwork.storeGenome();
     }
 
     private void initialize() {
@@ -162,11 +161,11 @@ public class DefaultDriver extends AbstractDriver {
 
         action.steering = ((currentLeftTrackEdge * currentLeftTrackEdge - currentRightTrackEdge * currentRightTrackEdge) / 100);
 
-        if (getTrackName().toLowerCase().contains("dirt") || getTrackName().toLowerCase().contains("mixed")) {
-            if (sensors.getSpeed() > 80) {
+        if (sensors.getSpeed() > 180)
+            action.accelerate = 0;
+
+        if (trackIsDirty() && sensors.getSpeed() > 60)
                 action.accelerate = 0;
-            }
-        }
 
         return action;
     }

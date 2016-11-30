@@ -1,4 +1,6 @@
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.function.Supplier;
 
 import cicontest.algorithm.abstracts.AbstractAlgorithm;
@@ -39,7 +41,40 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
             return d;
         };
 
-        results = race.runRace(drivers, false, supplier);
+        results = race.runRace(drivers, with_gui, supplier);
+
+        return results[0];
+    }
+
+    // disables output prints and returns the laptime
+    public double run_with_results() {
+        // backup stdout
+        PrintStream stdout = System.out;
+
+        // redirect stdout
+        try {
+            System.setOut(new PrintStream(new File("/dev/null")));
+        } catch (FileNotFoundException e) {
+        }
+
+        DefaultDriverGenome genome = new DefaultDriverGenome();
+        drivers[0] = genome;
+
+        //Start a race
+        DefaultRace race = new DefaultRace();
+        race.setTrack(track, tracktype);
+        race.laps = 1;
+
+        Supplier<DefaultDriver> driver_factory;
+        if (use_logging)
+            driver_factory = () -> new LoggingDriver(human);
+        else
+            driver_factory = DefaultDriver::new;
+
+        results = race.runRace(drivers, with_gui, driver_factory);
+
+        // restore stdout
+        System.setOut(stdout);
 
         return results[0];
     }
@@ -112,6 +147,9 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
     }
 
     public static void run_all_tracks(boolean use_logging, boolean with_gui) {
+        // uncomment to train a new network
+        new DefaultDriver().train(0, 16, 5000);
+
         DefaultDriverAlgorithm algorithm = new DefaultDriverAlgorithm();
         algorithm.use_logging = use_logging;
         algorithm.with_gui = with_gui;
@@ -120,18 +158,30 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
         String[] road_tracks = {"aalborg", "corkscrew", "brondehach", "alpine-1", "alpine-2", "forza", "ruudskogen"};
         String[] dirt_tracks = {"dirt-1", "dirt-2", "mixed-1", "mixed-2"};
 
+        int roads_passed = 0;
+        int dirts_passed = 0;
+
         for (String track : road_tracks) {
-            System.out.println(track);
             algorithm.track = track;
-            algorithm.run();
+            double laptime = algorithm.run_with_results();
+            System.out.printf("%s: %.2f\n", track, laptime);
+
+            if (Double.isFinite(laptime))
+                roads_passed += 1;
         }
 
         for (String track : dirt_tracks) {
-            System.out.println(track);
             algorithm.track = track;
             algorithm.tracktype = "dirt";
-            algorithm.run();
+            double laptime = algorithm.run_with_results();
+            System.out.printf("%s: %.2f\n", track, laptime);
+
+            if (Double.isFinite(laptime))
+                dirts_passed += 1;
         }
+
+        System.out.printf("Passed %d/%d road tracks.\n", roads_passed, road_tracks.length);
+        System.out.printf("Passed %d/%d dirt tracks.\n", dirts_passed, dirt_tracks.length);
     }
 
     public static void evolve() {

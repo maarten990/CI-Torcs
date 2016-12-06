@@ -72,8 +72,11 @@ public class NeuralNetwork implements Serializable {
         BasicNetwork network = new BasicNetwork();
         // 3 inputs for the control network output, 36 inputs for the opponent sensors
         network.addLayer(new BasicLayer(null, false, 3 + 36));
-        network.addLayer(new BasicLayer(new ActivationTANH(), true, 12));
+        network.addLayer(new BasicLayer(new ActivationTANH(), true, 32));
         network.addLayer(new BasicLayer(null, true, offsets.size()));
+
+        network.getStructure().finalizeStructure();
+        network.reset(); // initializes the weights randomly
 
         return network;
     }
@@ -134,6 +137,44 @@ public class NeuralNetwork implements Serializable {
 
         // training loop
         Propagation train = new ResilientPropagation(network, dataset);
+        for (int epoch = 1; epoch < epochs; ++epoch) {
+            train.iteration();
+
+            if (epoch % 100 == 0)
+                System.out.printf("Epoch #%d: Error %f\n", epoch, train.getError());
+        }
+
+        train.finishTraining();
+    }
+
+    public void retrain_q(int epochs) {
+        // get all the csv files in the training directory
+        List<String> filenames = new ArrayList<>();
+        try {
+            Files.list(Paths.get("q_data/"))
+                    .map(String::valueOf)
+                    .filter(path -> path.endsWith(".csv"))
+                    .forEach(path -> filenames.add(path));
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
+        System.out.printf("Training on %s\n", filenames);
+
+        MLDataSet dataset = new BasicMLDataSet();
+
+        // load all the training files into the dataset
+        try {
+            Data data = road_model.load_q_data(filenames);
+            for (int i = 0; i < data.X.length; ++i) {
+                dataset.add(new BasicMLDataPair(new BasicMLData(data.X[i]),
+                        new BasicMLData(data.Y[i])));
+            }
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
+
+        // training loop
+        Propagation train = new ResilientPropagation(q_network, dataset);
         for (int epoch = 1; epoch < epochs; ++epoch) {
             train.iteration();
 

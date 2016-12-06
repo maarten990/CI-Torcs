@@ -82,6 +82,36 @@ public class DataModel implements Serializable {
         return new Data(input_array, output_array);
     }
 
+    public Data load_q_data(List<String> paths) throws IOException {
+        ArrayList<double[]> outputs = new ArrayList<>();
+        ArrayList<double[]> inputs = new ArrayList<>();
+
+        for (String path : paths) {
+            Reader in = new FileReader(path);
+            Iterable<CSVRecord> records = CSVFormat.DEFAULT.parse(in);
+
+            for (CSVRecord row : records) {
+                double[] output_row = new double[6];
+                double[] input_row = new double[row.size() - 6];
+
+                for (int i = 0; i < row.size(); ++i) {
+                    if (i < 6)
+                        output_row[i] = (Double.parseDouble(row.get(i)));
+                    else
+                        input_row[i - 6] = (Double.parseDouble(row.get(i)));
+                }
+
+                outputs.add(output_row);
+                inputs.add(input_row);
+            }
+        }
+
+        double[][] input_array = inputs.toArray(new double[0][0]);
+        double[][] output_array = outputs.toArray(new double[0][0]);
+
+        return new Data(input_array, output_array);
+    }
+
     /**
      * Format sensor output into an array with the same parameters as the training data.
      */
@@ -109,7 +139,9 @@ public class DataModel implements Serializable {
         double[] input = sensors.getOpponentSensors();
         double[] prefix = {action.accelerate, action.brake, action.steering};
 
-        Double[] out = Stream.concat(Arrays.stream(prefix).boxed(), Arrays.stream(input).boxed()).toArray(Double[]::new);
+        Double[] out = Stream.concat(Arrays.stream(prefix).boxed(), Arrays.stream(input) .boxed())
+                .map(x -> x / 200.0)
+                .toArray(Double[]::new);
         double[] out_array = Arrays.stream(out).mapToDouble(Double::doubleValue).toArray();
 
         return out_array;

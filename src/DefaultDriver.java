@@ -7,10 +7,11 @@ import cicontest.torcs.genome.IGenome;
 import scr.Action;
 import scr.SensorModel;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -25,7 +26,8 @@ public class DefaultDriver extends AbstractDriver {
     public double[] q_history;
     public double previous_reward;
     public List<Double[]> experience;
-    public double epsilon;
+    public double epsilon = 0.5;
+    public double gamma = 0.9;
 
     public DefaultDriver() {
         initialize();
@@ -33,8 +35,8 @@ public class DefaultDriver extends AbstractDriver {
         rng = new Random();
         history = new ArrayList<>();
         experience = new ArrayList<>();
-        epsilon = 0.1;
 
+        //train(0, 12, 1000);
         load();
     }
 
@@ -135,29 +137,35 @@ public class DefaultDriver extends AbstractDriver {
     public Action control(SensorModel sensors) {
         Action action = getActionFromNetwork(sensors);
 
-        //double[] input = neuralNetwork.road_model.format_q_input(sensors, action, true);
+        double[] input = neuralNetwork.road_model.format_q_input(sensors, action, true);
         NeuralNetwork.Offset offset;
 
-        //int idx;
-        //if (rng.nextDouble() <= epsilon)
-        //    idx = rng.nextInt(neuralNetwork.offsets.size());
-        //else
-        //    idx = 0;//getBestQIndex(input);
+        int idx;
+        if (rng.nextDouble() <= epsilon)
+            idx = rng.nextInt(neuralNetwork.offsets.size());
+        else
+            idx = getBestQIndex(input);
 
-        //offset = neuralNetwork.offsets.get(idx);
-        //action.steering += offset.steering;
-        //action.brake += offset.brake;
+        if (q_history == null) {
+            previous_reward = getReward(sensors);
+            q_history = input;
+
+            return action;
+        }
+
+        offset = neuralNetwork.offsets.get(idx);
+        action.steering += offset.steering;
+        action.brake += offset.brake;
 
         // update the previous iteration's q values
         double[] q_values = neuralNetwork.getQOutput(q_history);
-        //q_values[idx] = (getReward(sensors) - previous_reward) + 0.9 * getBestQValue(input);
-        //Double[] sample = Stream.concat(Stream.of(q_values), Stream.of(q_history))
-        //        .toArray(Double[]::new);
-        //experience.add(sample);
-        //System.out.println(getReward(sensors) - previous_reward);
+        q_values[idx] = (getReward(sensors) - previous_reward) + gamma * getBestQValue(input);
+        Double[] sample = Stream.concat(Arrays.stream(q_values).boxed(), Arrays.stream(q_history).boxed())
+                .toArray(Double[]::new);
+        experience.add(sample);
 
-        //previous_reward = getReward(sensors);
-        //q_history = input;
+        previous_reward = getReward(sensors);
+        q_history = input;
 
         // recovery if the car stalls
         if (sensors.getSpeed() < 20) {
@@ -231,5 +239,23 @@ public class DefaultDriver extends AbstractDriver {
                 action.accelerate = 0;
 
         return action;
+    }
+
+    @Override
+    public void exit() {
+        String fname = String.format("q_data/%f.csv", rng.nextDouble());
+        List<String> stringdata = new ArrayList<>();
+        for (Double[] row : experience) {
+            String s = Arrays.stream(row)
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(", "));
+            stringdata.add(s);
+        }
+
+        try {
+            Files.write(Paths.get(fname), stringdata);
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
     }
 }

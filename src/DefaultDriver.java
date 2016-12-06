@@ -8,7 +8,11 @@ import scr.Action;
 import scr.SensorModel;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class DefaultDriver extends AbstractDriver {
 
@@ -16,14 +20,25 @@ public class DefaultDriver extends AbstractDriver {
     private double lastRightTrackEdge;
     private double lastLeftTrackEdge;
     private List<double[]> history;
+    private Random rng;
     public int n_history;
-
+    public double[] q_history;
+    public double previous_reward;
+    public List<Double[]> experience;
+    public double epsilon;
 
     public DefaultDriver() {
         initialize();
 
+        rng = new Random();
         history = new ArrayList<>();
+        experience = new ArrayList<>();
+        epsilon = 0.1;
 
+        load();
+    }
+
+    public void load() {
         neuralNetwork = NeuralNetwork.loadGenome();
         n_history = neuralNetwork.history;
     }
@@ -64,6 +79,10 @@ public class DefaultDriver extends AbstractDriver {
         return 0;
     }
 
+    public double getReward(SensorModel sensors) {
+        return sensors.getSpeed();
+    }
+
     public boolean trackIsDirty() {
         return getTrackName().toLowerCase().contains("dirt") || getTrackName().toLowerCase().contains("mixed");
     }
@@ -98,15 +117,59 @@ public class DefaultDriver extends AbstractDriver {
         return "The Venga Bus";
     }
 
+    private int getBestQIndex(double[] input) {
+        double[] q_values = neuralNetwork.getQOutput(input);
+        int best_idx = IntStream.range(0, q_values.length).boxed()
+                .max((x, y) -> Double.compare(q_values[x], q_values[y]))
+                .get();
+
+        return best_idx;
+    }
+
+    private double getBestQValue(double[] input) {
+        double[] q_values = neuralNetwork.getQOutput(input);
+        return Arrays.stream(q_values).max().getAsDouble();
+    }
+
     @Override
     public Action control(SensorModel sensors) {
         Action action = getActionFromNetwork(sensors);
 
+        //double[] input = neuralNetwork.road_model.format_q_input(sensors, action, true);
+        NeuralNetwork.Offset offset;
+
+        //int idx;
+        //if (rng.nextDouble() <= epsilon)
+        //    idx = rng.nextInt(neuralNetwork.offsets.size());
+        //else
+        //    idx = 0;//getBestQIndex(input);
+
+        //offset = neuralNetwork.offsets.get(idx);
+        //action.steering += offset.steering;
+        //action.brake += offset.brake;
+
+        // update the previous iteration's q values
+        double[] q_values = neuralNetwork.getQOutput(q_history);
+        //q_values[idx] = (getReward(sensors) - previous_reward) + 0.9 * getBestQValue(input);
+        //Double[] sample = Stream.concat(Stream.of(q_values), Stream.of(q_history))
+        //        .toArray(Double[]::new);
+        //experience.add(sample);
+        //System.out.println(getReward(sensors) - previous_reward);
+
+        //previous_reward = getReward(sensors);
+        //q_history = input;
+
         // recovery if the car stalls
-        if (sensors.getSpeed() < 20){
+        if (sensors.getSpeed() < 20) {
             action.accelerate = 1;
             action.brake = 0;
         }
+
+        if (sensors.getSpeed() > 160)
+            action.accelerate = 0;
+
+        if (trackIsDirty() && sensors.getSpeed() > 60)
+            action.accelerate = 0;
 
         return action;
     }

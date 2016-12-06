@@ -47,7 +47,7 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
     }
 
     // disables output prints and returns the laptime
-    public double run_with_results() {
+    public double run_with_results(int n_drivers) {
         // backup stdout
         PrintStream stdout = System.out;
 
@@ -57,8 +57,11 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
         } catch (FileNotFoundException e) {
         }
 
-        DefaultDriverGenome genome = new DefaultDriverGenome();
-        drivers[0] = genome;
+        drivers = new DefaultDriverGenome[n_drivers];
+        for (int i = 0; i < n_drivers; ++i) {
+            DefaultDriverGenome genome = new DefaultDriverGenome();
+            drivers[0] = genome;
+        }
 
         //Start a race
         DefaultRace race = new DefaultRace();
@@ -130,11 +133,13 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
         } else if (args.length > 0 && args[0].equals("-human")) {
             new DefaultRace().raceBest();
         } else if (args.length > 0 && args[0].equals("-log")) {
-            run_all_tracks(true, false);
+            run_all_tracks(true, false, 1);
         } else if (args.length > 0 && args[0].equals("-test")) {
-            run_all_tracks(false, false);
+            run_all_tracks(false, false, 1);
         } else if (args.length > 0 && args[0].equals("-evolve")) {
             evolve();
+        } else if (args.length > 0 && args[0].equals("-qlearning")) {
+            run_all_tracks(false, true, 1);
         } else if (args.length > 0 && args[0].equals("-continue")) {
             if (DriversUtils.hasCheckpoint()) {
                 DriversUtils.loadCheckpoint().run(true);
@@ -146,9 +151,9 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
         }
     }
 
-    public static void run_all_tracks(boolean use_logging, boolean with_gui) {
+    public static void run_all_tracks(boolean use_logging, boolean with_gui, int n_drivers) {
         // uncomment to train a new network
-        new DefaultDriver().train(0, 16, 5000);
+        new DefaultDriver().train(0, 12, 5000);
 
         DefaultDriverAlgorithm algorithm = new DefaultDriverAlgorithm();
         algorithm.use_logging = use_logging;
@@ -163,7 +168,7 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
 
         for (String track : road_tracks) {
             algorithm.track = track;
-            double laptime = algorithm.run_with_results();
+            double laptime = algorithm.run_with_results(n_drivers);
             System.out.printf("%s: %.2f\n", track, laptime);
 
             if (Double.isFinite(laptime))
@@ -173,7 +178,7 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
         for (String track : dirt_tracks) {
             algorithm.track = track;
             algorithm.tracktype = "dirt";
-            double laptime = algorithm.run_with_results();
+            double laptime = algorithm.run_with_results(n_drivers);
             System.out.printf("%s: %.2f\n", track, laptime);
 
             if (Double.isFinite(laptime))

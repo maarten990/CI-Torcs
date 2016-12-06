@@ -1,6 +1,7 @@
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.encog.util.arrayutil.NormalizeArray;
+import scr.Action;
 import scr.SensorModel;
 
 import java.io.FileReader;
@@ -10,6 +11,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class DataModel implements Serializable {
     private double[] means;
@@ -100,6 +103,16 @@ public class DataModel implements Serializable {
             normalize(input);
 
         return input;
+    }
+
+    public double[] format_q_input(SensorModel sensors, Action action, boolean normalize_data) {
+        double[] input = sensors.getOpponentSensors();
+        double[] prefix = {action.accelerate, action.brake, action.steering};
+
+        Double[] out = Stream.concat(Arrays.stream(prefix).boxed(), Arrays.stream(input).boxed()).toArray(Double[]::new);
+        double[] out_array = Arrays.stream(out).mapToDouble(Double::doubleValue).toArray();
+
+        return out_array;
     }
 
     public void normalize(double[] input) {

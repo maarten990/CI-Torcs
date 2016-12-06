@@ -7,6 +7,8 @@ import org.encog.neural.networks.BasicNetwork;
 import org.encog.neural.networks.layers.BasicLayer;
 import org.encog.neural.networks.training.propagation.Propagation;
 import org.encog.neural.networks.training.propagation.resilient.ResilientPropagation;
+import scr.Action;
+import scr.SensorModel;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -25,6 +27,9 @@ public class NeuralNetwork implements Serializable {
 
     public BasicNetwork road_network;
     public BasicNetwork dirt_network;
+    public BasicNetwork q_network;
+
+    public List<Offset> offsets;
 
     /**
      * hidden: the number of nodes to use in the hidden layer
@@ -32,24 +37,45 @@ public class NeuralNetwork implements Serializable {
      * history: number of previous steps to take into account
      */
     NeuralNetwork(int hidden, int history) {
-        road_network = new BasicNetwork();
-        road_network.addLayer(new BasicLayer(null, false, 22 + (history * 22)));
-        road_network.addLayer(new BasicLayer(new ActivationTANH(), true, hidden));
-        road_network.addLayer(new BasicLayer(new ActivationTANH(), true, 3));
-        road_network.getStructure().finalizeStructure();
-        road_network.reset(); // initializes the weights randomly
-
-        dirt_network = new BasicNetwork();
-        dirt_network.addLayer(new BasicLayer(null, false, 22 + (history * 22)));
-        dirt_network.addLayer(new BasicLayer(new ActivationTANH(), true, hidden));
-        dirt_network.addLayer(new BasicLayer(new ActivationTANH(), true, 3));
-        dirt_network.getStructure().finalizeStructure();
-        dirt_network.reset(); // initializes the weights randomly
-
         this.history = history;
+
+        road_network = create_network(hidden);
+        dirt_network = create_network(hidden);
+
+        q_network = create_q_network();
 
         road_model = new DataModel();
         dirt_model = new DataModel();
+    }
+
+    private BasicNetwork create_network(int hidden) {
+        BasicNetwork network = new BasicNetwork();
+        network.addLayer(new BasicLayer(null, false, 22 + (history * 22)));
+        network.addLayer(new BasicLayer(new ActivationTANH(), true, hidden));
+        network.addLayer(new BasicLayer(new ActivationTANH(), true, 3));
+        network.getStructure().finalizeStructure();
+        network.reset(); // initializes the weights randomly
+
+        return network;
+    }
+
+    private BasicNetwork create_q_network() {
+        offsets = new ArrayList<>();
+        double[] steering_offsets = {-1, 0, 1};
+        double[] braking_offsets = {0, 1};
+        for (double st : steering_offsets) {
+            for (double br : braking_offsets) {
+                offsets.add(new Offset(st, br));
+            }
+        }
+
+        BasicNetwork network = new BasicNetwork();
+        // 3 inputs for the control network output, 36 inputs for the opponent sensors
+        network.addLayer(new BasicLayer(null, false, 3 + 36));
+        network.addLayer(new BasicLayer(new ActivationTANH(), true, 12));
+        network.addLayer(new BasicLayer(null, true, offsets.size()));
+
+        return network;
     }
 
     public void train(int epochs, String training_folder, String dirt_folder) {
@@ -135,6 +161,13 @@ public class NeuralNetwork implements Serializable {
         return getOutput(histories, dirt_network);
     }
 
+    public double[] getQOutput(double[] input) {
+        double[] output = new double[q_network.getOutputCount()];
+        q_network.compute(input, output);
+
+        return output;
+    }
+
     /**
      * Output is an array of the form [acceleration, brake, steering]
      */
@@ -205,5 +238,16 @@ public class NeuralNetwork implements Serializable {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public class Offset implements Serializable {
+        private static final long serialVersionUID = -88L;
+        double steering;
+        double brake;
+
+        public Offset(double steering, double brake) {
+            this.steering = steering;
+            this.brake = brake;
+        }
     }
 }

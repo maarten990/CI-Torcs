@@ -7,8 +7,6 @@ import org.encog.neural.networks.BasicNetwork;
 import org.encog.neural.networks.layers.BasicLayer;
 import org.encog.neural.networks.training.propagation.Propagation;
 import org.encog.neural.networks.training.propagation.resilient.ResilientPropagation;
-import scr.Action;
-import scr.SensorModel;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -29,7 +27,7 @@ public class NeuralNetwork implements Serializable {
     public BasicNetwork dirt_network;
     public BasicNetwork q_network;
 
-    public List<Offset> offsets;
+    public double[] acc_offsets = {-0.5, 0, 0.5};
 
     /**
      * hidden: the number of nodes to use in the hidden layer
@@ -60,20 +58,11 @@ public class NeuralNetwork implements Serializable {
     }
 
     private BasicNetwork create_q_network() {
-        offsets = new ArrayList<>();
-        double[] steering_offsets = {-1, 0, 1};
-        double[] braking_offsets = {0, 1};
-        for (double st : steering_offsets) {
-            for (double br : braking_offsets) {
-                offsets.add(new Offset(st, br));
-            }
-        }
-
         BasicNetwork network = new BasicNetwork();
         // 3 inputs for the control network output, 36 inputs for the opponent sensors
-        network.addLayer(new BasicLayer(null, false, 3 + 36));
-        network.addLayer(new BasicLayer(new ActivationTANH(), true, 32));
-        network.addLayer(new BasicLayer(null, true, offsets.size()));
+        network.addLayer(new BasicLayer(null, false, 22));
+        network.addLayer(new BasicLayer(new ActivationTANH(), true, 12));
+        network.addLayer(new BasicLayer(null, true, this.acc_offsets.length));
 
         network.getStructure().finalizeStructure();
         network.reset(); // initializes the weights randomly
@@ -279,16 +268,5 @@ public class NeuralNetwork implements Serializable {
             e.printStackTrace();
         }
         return null;
-    }
-
-    public class Offset implements Serializable {
-        private static final long serialVersionUID = -88L;
-        double steering;
-        double brake;
-
-        public Offset(double steering, double brake) {
-            this.steering = steering;
-            this.brake = brake;
-        }
     }
 }

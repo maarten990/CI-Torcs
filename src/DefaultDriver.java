@@ -26,7 +26,7 @@ public class DefaultDriver extends AbstractDriver {
     public double[] q_history;
     public double previous_reward;
     public List<Double[]> experience;
-    public double epsilon = 0.5;
+    public double epsilon = 0.0;
     public double gamma = 0.9;
 
     public DefaultDriver() {
@@ -137,12 +137,11 @@ public class DefaultDriver extends AbstractDriver {
     public Action control(SensorModel sensors) {
         Action action = getActionFromNetwork(sensors);
 
-        double[] input = neuralNetwork.road_model.format_q_input(sensors, action, true);
-        NeuralNetwork.Offset offset;
+        double[] input = neuralNetwork.road_model.format_input(sensors, true);
 
         int idx;
         if (rng.nextDouble() <= epsilon)
-            idx = rng.nextInt(neuralNetwork.offsets.size());
+            idx = rng.nextInt(neuralNetwork.acc_offsets.length);
         else
             idx = getBestQIndex(input);
 
@@ -153,9 +152,10 @@ public class DefaultDriver extends AbstractDriver {
             return action;
         }
 
-        offset = neuralNetwork.offsets.get(idx);
-        action.steering += offset.steering;
-        action.brake += offset.brake;
+        if (sensors.getSpeed() > 160)
+            action.accelerate = 0;
+
+        action.accelerate += neuralNetwork.acc_offsets[idx];
 
         // update the previous iteration's q values
         double[] q_values = neuralNetwork.getQOutput(q_history);
@@ -172,9 +172,6 @@ public class DefaultDriver extends AbstractDriver {
             action.accelerate = 1;
             action.brake = 0;
         }
-
-        if (sensors.getSpeed() > 160)
-            action.accelerate = 0;
 
         if (trackIsDirty() && sensors.getSpeed() > 60)
             action.accelerate = 0;

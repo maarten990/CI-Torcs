@@ -145,7 +145,7 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
         } else if (args.length > 0 && args[0].equals("-evolve")) {
             evolve();
         } else if (args.length > 0 && args[0].equals("-qlearning")) {
-            run_all_tracks(false, false, 5);
+            run_all_tracks(false, false, 1);
         } else if (args.length > 0 && args[0].equals("-continue")) {
             if (DriversUtils.hasCheckpoint()) {
                 DriversUtils.loadCheckpoint().run(true);

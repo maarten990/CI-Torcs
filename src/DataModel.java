@@ -91,14 +91,14 @@ public class DataModel implements Serializable {
             Iterable<CSVRecord> records = CSVFormat.DEFAULT.parse(in);
 
             for (CSVRecord row : records) {
-                double[] output_row = new double[6];
-                double[] input_row = new double[row.size() - 6];
+                double[] output_row = new double[3];
+                double[] input_row = new double[row.size() - 3];
 
                 for (int i = 0; i < row.size(); ++i) {
-                    if (i < 6)
+                    if (i < 3)
                         output_row[i] = (Double.parseDouble(row.get(i)));
                     else
-                        input_row[i - 6] = (Double.parseDouble(row.get(i)));
+                        input_row[i - 3] = (Double.parseDouble(row.get(i)));
                 }
 
                 outputs.add(output_row);

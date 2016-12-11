@@ -26,6 +26,7 @@ public class NeuralNetwork implements Serializable {
     public BasicNetwork road_network;
     public BasicNetwork dirt_network;
     public BasicNetwork q_network;
+    public BasicNetwork dirt_q;
 
     public double[] acc_offsets = {-0.5, 0, 0.5};
 
@@ -41,6 +42,7 @@ public class NeuralNetwork implements Serializable {
         dirt_network = create_network(hidden);
 
         q_network = create_q_network();
+        dirt_q = create_q_network();
 
         road_model = new DataModel();
         dirt_model = new DataModel();
@@ -62,7 +64,7 @@ public class NeuralNetwork implements Serializable {
         // 3 inputs for the control network output, 36 inputs for the opponent sensors
         network.addLayer(new BasicLayer(null, false, 22));
         network.addLayer(new BasicLayer(new ActivationTANH(), true, 12));
-        network.addLayer(new BasicLayer(null, true, this.acc_offsets.length));
+        network.addLayer(new BasicLayer(new ActivationTANH(), true, this.acc_offsets.length));
 
         network.getStructure().finalizeStructure();
         network.reset(); // initializes the weights randomly
@@ -136,11 +138,19 @@ public class NeuralNetwork implements Serializable {
         train.finishTraining();
     }
 
-    public void retrain_q(int epochs) {
+    public void retrain_q_road(int epochs) {
+        retrain_q(epochs, q_network, "q_data");
+    }
+
+    public void retrain_q_dirt(int epochs) {
+        retrain_q(epochs, dirt_q, "q_dirt");
+    }
+
+    private void retrain_q(int epochs, BasicNetwork network, String data_folder) {
         // get all the csv files in the training directory
         List<String> filenames = new ArrayList<>();
         try {
-            Files.list(Paths.get("q_data/"))
+            Files.list(Paths.get(data_folder))
                     .map(String::valueOf)
                     .filter(path -> path.endsWith(".csv"))
                     .forEach(path -> filenames.add(path));
@@ -163,7 +173,7 @@ public class NeuralNetwork implements Serializable {
         }
 
         // training loop
-        Propagation train = new ResilientPropagation(q_network, dataset);
+        Propagation train = new ResilientPropagation(network, dataset);
         for (int epoch = 1; epoch < epochs; ++epoch) {
             train.iteration();
 
@@ -194,6 +204,13 @@ public class NeuralNetwork implements Serializable {
     public double[] getQOutput(double[] input) {
         double[] output = new double[q_network.getOutputCount()];
         q_network.compute(input, output);
+
+        return output;
+    }
+
+    public double[] getQDirtOutput(double[] input) {
+        double[] output = new double[dirt_q.getOutputCount()];
+        dirt_q.compute(input, output);
 
         return output;
     }

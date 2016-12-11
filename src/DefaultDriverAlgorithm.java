@@ -20,12 +20,12 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
     private static final long serialVersionUID = 654963126362653L;
 
     DefaultDriverGenome[] drivers = new DefaultDriverGenome[1];
-    double[] results = new double[1];
-    boolean use_logging = false;
-    boolean human = false;
-    boolean with_gui = true;
+    private double[] results = new double[1];
+    private boolean use_logging = false;
+    private boolean human = false;
+    private boolean with_gui = true;
     String track = "aalborg";
-    String tracktype = "road";
+    private String tracktype = "road";
 
     public Class<? extends Driver> getDriverClass() {
         return DefaultDriver.class;
@@ -53,7 +53,7 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
     }
 
     // disables output prints and returns the laptime
-    public double[] run_with_results(int n_drivers) {
+    public double[] run_with_results(int n_drivers, double epsilon) {
         // backup stdout
         PrintStream stdout = System.out;
 
@@ -78,7 +78,7 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
         if (use_logging)
             driver_factory = () -> new LoggingDriver(human);
         else
-            driver_factory = DefaultDriver::new;
+            driver_factory = () -> {DefaultDriver d = new DefaultDriver(); d.epsilon = epsilon; return d;};
 
         results = race.runRace(drivers, with_gui, driver_factory);
 
@@ -139,13 +139,13 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
         } else if (args.length > 0 && args[0].equals("-human")) {
             new DefaultRace().raceBest();
         } else if (args.length > 0 && args[0].equals("-log")) {
-            run_all_tracks(true, false, 1);
+            run_all_tracks(true, false, 1, false);
         } else if (args.length > 0 && args[0].equals("-test")) {
-            run_all_tracks(false, false, 1);
+            run_all_tracks(false, false, 1, false);
         } else if (args.length > 0 && args[0].equals("-evolve")) {
             evolve();
         } else if (args.length > 0 && args[0].equals("-qlearning")) {
-            run_all_tracks(false, false, 1);
+            run_all_tracks(false, false, 1, true);
         } else if (args.length > 0 && args[0].equals("-continue")) {
             if (DriversUtils.hasCheckpoint()) {
                 DriversUtils.loadCheckpoint().run(true);
@@ -157,9 +157,9 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
         }
     }
 
-    public static void run_all_tracks(boolean use_logging, boolean with_gui, int n_drivers) {
+    public static void run_all_tracks(boolean use_logging, boolean with_gui, int n_drivers, boolean qlearn) {
         // uncomment to train a new network
-        //new DefaultDriver().train(0, 12, 1000);
+        //new DefaultDriver().train(0, 16, 2000);
         DefaultDriverAlgorithm algorithm = new DefaultDriverAlgorithm();
         algorithm.use_logging = use_logging;
         algorithm.with_gui = with_gui;
@@ -168,43 +168,56 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
         String[] road_tracks = {"aalborg", "corkscrew", "brondehach", "alpine-1", "alpine-2", "forza", "ruudskogen"};
         String[] dirt_tracks = {"dirt-1", "dirt-2", "mixed-1", "mixed-2"};
 
-        for (String track : road_tracks) {
-            try {
-                for (Path file : Files.list(Paths.get("q_data")).collect(Collectors.toList())) {
-                    Files.delete(file);
+        double epsilon = qlearn ? 1.0 : 0.0;
+        for (int i = 0; i < (qlearn ? 30 : 1); ++i) {
+            if (qlearn) {
+                try {
+                    for (Path file : Files.list(Paths.get("q_data")).collect(Collectors.toList()))
+                        Files.delete(file);
+                    for (Path file : Files.list(Paths.get("q_dirt")).collect(Collectors.toList()))
+                        Files.delete(file);
+                } catch (IOException e) {
+                    System.out.println(e.getMessage());
                 }
-            } catch (IOException e) {
-                System.out.println(e.getMessage());
+
+                epsilon = Math.max(0.1, epsilon - 0.05);
             }
 
-            algorithm.track = track;
-            double[] laptimes = algorithm.run_with_results(n_drivers);
-            System.out.printf("%s: %s\n", track,
-                    Arrays.stream(laptimes).boxed()
-                            .map(x -> String.format("%.2f", x))
-                            .collect(Collectors.joining(", ")));
+            System.out.printf("Epsilon: %f\n", epsilon);
 
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
+            for (String track : road_tracks) {
+                algorithm.track = track;
+                algorithm.tracktype = "road";
+                double[] laptimes = algorithm.run_with_results(n_drivers, epsilon);
+                System.out.printf("%s: %s\n", track,
+                        Arrays.stream(laptimes).boxed()
+                                .map(x -> String.format("%.2f", x))
+                                .collect(Collectors.joining(", ")));
             }
 
-            DefaultDriver d = new DefaultDriver();
-            d.neuralNetwork.retrain_q(501);
-            d.neuralNetwork.storeGenome();
-        }
+            for (String track : dirt_tracks) {
+                algorithm.track = track;
+                algorithm.tracktype = "dirt";
+                double[] laptimes = algorithm.run_with_results(n_drivers, epsilon);
+                System.out.printf("%s: %s\n", track,
+                        Arrays.stream(laptimes).boxed()
+                                .map(x -> String.format("%.2f", x))
+                                .collect(Collectors.joining(", ")));
+            }
 
-        /*
-        for (String track : dirt_tracks) {
-            algorithm.track = track;
-            algorithm.tracktype = "dirt";
-            double[] laptimes = algorithm.run_with_results(n_drivers);
-            System.out.printf("%s: %s\n", track,
-                    Arrays.stream(laptimes).boxed()
-                            .map(x -> String.format("%.2f", x))
-                            .collect(Collectors.joining(", ")));
+            if (qlearn) {
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                }
+
+                DefaultDriver d = new DefaultDriver();
+                d.neuralNetwork.retrain_q_road(500);
+                d.neuralNetwork.retrain_q_dirt(500);
+                d.neuralNetwork.storeGenome();
+            }
+
         }
-        */
     }
 
     public static void evolve() {

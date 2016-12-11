@@ -82,7 +82,7 @@ public class DefaultDriver extends AbstractDriver {
     }
 
     public double getReward(SensorModel sensors) {
-        return sensors.getSpeed();
+        return sensors.getSpeed() / 200;
     }
 
     public boolean trackIsDirty() {
@@ -120,16 +120,16 @@ public class DefaultDriver extends AbstractDriver {
     }
 
     private int getBestQIndex(double[] input) {
-        double[] q_values = neuralNetwork.getQOutput(input);
+        double[] q_values = trackIsDirty() ? neuralNetwork.getQDirtOutput(input) : neuralNetwork.getQOutput(input);
         int best_idx = IntStream.range(0, q_values.length).boxed()
-                .max((x, y) -> Double.compare(q_values[x], q_values[y]))
+                .max(Comparator.comparingDouble(x -> q_values[x]))
                 .get();
 
         return best_idx;
     }
 
     private double getBestQValue(double[] input) {
-        double[] q_values = neuralNetwork.getQOutput(input);
+        double[] q_values = trackIsDirty() ? neuralNetwork.getQDirtOutput(input) : neuralNetwork.getQOutput(input);
         return Arrays.stream(q_values).max().getAsDouble();
     }
 
@@ -137,7 +137,11 @@ public class DefaultDriver extends AbstractDriver {
     public Action control(SensorModel sensors) {
         Action action = getActionFromNetwork(sensors);
 
-        double[] input = neuralNetwork.road_model.format_input(sensors, true);
+        double[] input;
+        if (trackIsDirty())
+            input = neuralNetwork.dirt_model.format_input(sensors, true);
+        else
+            input = neuralNetwork.road_model.format_input(sensors, true);
 
         int idx;
         if (rng.nextDouble() <= epsilon)
@@ -152,14 +156,11 @@ public class DefaultDriver extends AbstractDriver {
             return action;
         }
 
-        if (sensors.getSpeed() > 160)
-            action.accelerate = 0;
-
         action.accelerate += neuralNetwork.acc_offsets[idx];
 
         // update the previous iteration's q values
         double[] q_values = neuralNetwork.getQOutput(q_history);
-        q_values[idx] = (getReward(sensors) - previous_reward) + gamma * getBestQValue(input);
+        q_values[idx] = getReward(sensors) + gamma * getBestQValue(input);
         Double[] sample = Stream.concat(Arrays.stream(q_values).boxed(), Arrays.stream(q_history).boxed())
                 .toArray(Double[]::new);
         experience.add(sample);
@@ -168,13 +169,10 @@ public class DefaultDriver extends AbstractDriver {
         q_history = input;
 
         // recovery if the car stalls
-        if (sensors.getSpeed() < 20) {
+        if (!trackIsDirty() && sensors.getSpeed() < 60) {
             action.accelerate = 1;
             action.brake = 0;
         }
-
-        if (trackIsDirty() && sensors.getSpeed() > 60)
-            action.accelerate = 0;
 
         return action;
     }
@@ -232,15 +230,18 @@ public class DefaultDriver extends AbstractDriver {
         if (sensors.getSpeed() > 180)
             action.accelerate = 0;
 
-        if (trackIsDirty() && sensors.getSpeed() > 60)
-                action.accelerate = 0;
-
         return action;
     }
 
     @Override
     public void exit() {
-        String fname = String.format("q_data/%f.csv", rng.nextDouble());
+        /*
+        String fname;
+        if (trackIsDirty())
+            fname = String.format("q_dirt/%f.csv", rng.nextDouble());
+        else
+            fname = String.format("q_data/%f.csv", rng.nextDouble());
+
         List<String> stringdata = new ArrayList<>();
         for (Double[] row : experience) {
             String s = Arrays.stream(row)
@@ -254,5 +255,6 @@ public class DefaultDriver extends AbstractDriver {
         } catch (IOException e) {
             System.out.println(e.getMessage());
         }
+        */
     }
 }

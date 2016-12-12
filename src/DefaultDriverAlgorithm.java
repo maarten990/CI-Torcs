@@ -169,7 +169,7 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
         String[] dirt_tracks = {"dirt-1", "dirt-2", "mixed-1", "mixed-2"};
 
         double epsilon = qlearn ? 1.0 : 0.0;
-        for (int i = 0; i < (qlearn ? 30 : 1); ++i) {
+        for (int i = 0; i < (qlearn ? 10 : 1); ++i) {
             if (qlearn) {
                 try {
                     for (Path file : Files.list(Paths.get("q_data")).collect(Collectors.toList()))
@@ -180,7 +180,7 @@ public class DefaultDriverAlgorithm extends AbstractAlgorithm {
                     System.out.println(e.getMessage());
                 }
 
-                epsilon = Math.max(0.1, epsilon - 0.05);
+                epsilon = Math.max(0.1, epsilon - 0.1);
             }
 
             System.out.printf("Epsilon: %f\n", epsilon);

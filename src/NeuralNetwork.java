@@ -1,3 +1,4 @@
+import org.encog.engine.network.activation.ActivationLinear;
 import org.encog.engine.network.activation.ActivationTANH;
 import org.encog.ml.data.MLDataSet;
 import org.encog.ml.data.basic.BasicMLData;
@@ -63,8 +64,8 @@ public class NeuralNetwork implements Serializable {
         BasicNetwork network = new BasicNetwork();
         // 3 inputs for the control network output, 36 inputs for the opponent sensors
         network.addLayer(new BasicLayer(null, false, 22));
-        network.addLayer(new BasicLayer(new ActivationTANH(), true, 12));
-        network.addLayer(new BasicLayer(new ActivationTANH(), true, this.acc_offsets.length));
+        network.addLayer(new BasicLayer(new ActivationLinear(), true, 12));
+        network.addLayer(new BasicLayer(new ActivationLinear(), true, this.acc_offsets.length));
 
         network.getStructure().finalizeStructure();
         network.reset(); // initializes the weights randomly

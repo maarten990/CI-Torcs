@@ -122,7 +122,8 @@ public class DefaultDriver extends AbstractDriver {
     private int getBestQIndex(double[] input) {
         double[] q_values = trackIsDirty() ? neuralNetwork.getQDirtOutput(input) : neuralNetwork.getQOutput(input);
         int best_idx = IntStream.range(0, q_values.length).boxed()
-                .max(Comparator.comparingDouble(x -> q_values[x]))
+                .reduce((x, y) -> q_values[y] >= q_values[x] ? y : x)
+                //.max(Comparator.comparingDouble(x -> q_values[x]))
                 .get();
 
         return best_idx;
@@ -173,6 +174,9 @@ public class DefaultDriver extends AbstractDriver {
             action.accelerate = 1;
             action.brake = 0;
         }
+
+        if (trackIsDirty() && sensors.getZSpeed() > 10)
+            action.accelerate = 0;
 
         return action;
     }
